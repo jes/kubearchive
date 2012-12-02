@@ -6,6 +6,8 @@ use strict;
 use warnings;
 
 use LWP::UserAgent;
+use POSIX qw(strftime);
+use File::Path qw(make_path);
 
 my $KUBE = 'http://clyde.kuberadio.com/streams/kube-high.mp3';
 
@@ -13,14 +15,33 @@ while (1) {
     my $browser = LWP::UserAgent->new;
 
     my $response = $browser->get($KUBE,
-        ':content_cb' => \&store_sample);
+        ':content_cb' => \&_store_sample);
 
     # don't shit a brick if things go bad
     sleep 1;
 }
 
+# Because LWP::UserAgent dicks about with things, it seems
+sub _store_sample {
+    eval { store_sample(@_); };
+    print STDERR $@ if $@;
+}
+
+my $fh;
+my $fname;
 sub store_sample {
     my ($data, $response) = @_;
 
-    print $data;
+    my @time = gmtime;
+    my $dir = strftime("%Y/%m/%d/", @time);
+    my $newfname = $dir . strftime("%H00.mp3", @time);
+    if (!$fname or ($fname ne $newfname)) {
+        print "Make $dir for $newfname\n";
+        close $fh if $fh;
+        $fname = $newfname;
+        make_path($dir);
+        open($fh, '>>', $fname);
+    }
+
+    syswrite($fh, $data);
 }
