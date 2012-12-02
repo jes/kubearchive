@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+# Make archives of Kube Radio
+# James Stanley 2012
+
+use strict;
+use warnings;
+
+use LWP::UserAgent;
+
+my $KUBE = 'http://clyde.kuberadio.com/streams/kube-high.mp3';
+
+while (1) {
+    my $browser = LWP::UserAgent->new;
+
+    my $response = $browser->get($KUBE,
+        ':content_cb' => \&store_sample);
+
+    # don't shit a brick if things go bad
+    sleep 1;
+}
+
+sub store_sample {
+    my ($data, $response) = @_;
+
+    print $data;
+}
