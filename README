@@ -1,0 +1,12 @@
+This program takes archives of Kube radio and stores them in hour-long chunks.
+
+Usage: ./kubearchive
+
+The program will then write files of the form 2012/12/05/2000.mp3 each
+containing "an hour" of recording of Kube radio.
+
+If you want it to run reliably, make an init script and have it start on boot.
+
+Bugs:
+ - some of the chunks are several minutes longer than an hour; why?
+ - this takes up a *heck* of a lot of disk space (about 1.2G/day)
