@@ -9,19 +9,25 @@ use LWP::UserAgent;
 use POSIX qw(strftime);
 use File::Path qw(make_path);
 
+# "configuration"
 my $KUBE = 'http://clyde.kuberadio.com/streams/kube-high.mp3';
 
+# repeatedly connect to Kube and stream content to the disk
 while (1) {
     my $browser = LWP::UserAgent->new;
 
     my $response = $browser->get($KUBE,
         ':content_cb' => \&_store_sample);
 
-    # don't shit a brick if things go bad
+    print STDERR "Closed connection: ", $response->message, "\n";
+    print STDERR "Reconnecting.\n";
+
+    # don't waste CPU time if we keep getting disconnected immediately
     sleep 1;
 }
 
-# Because LWP::UserAgent dicks about with things, it seems
+# LWP::UserAgent apparently turns off strict and warnings; this function is
+# a wrapper around store_sample that outputs error messages
 sub _store_sample {
     eval { store_sample(@_); };
     print STDERR $@ if $@;
@@ -29,19 +35,28 @@ sub _store_sample {
 
 my $fh;
 my $fname;
+
+# store data to the disk
 sub store_sample {
     my ($data, $response) = @_;
 
+    # find out the filename for this section
     my @time = gmtime;
     my $dir = strftime("%Y/%m/%d/", @time);
     my $newfname = $dir . strftime("%H00.mp3", @time);
+
+    # if we need to open a new file, do so
     if (!$fname or ($fname ne $newfname)) {
-        print "Make $dir for $newfname\n";
+        # make a new directory if necessary
+        if (! -d $dir) {
+            print "Make $dir for $newfname\n";
+            make_path($dir);
+        }
         close $fh if $fh;
         $fname = $newfname;
-        make_path($dir);
         open($fh, '>>', $fname);
     }
 
+    # write the data
     syswrite($fh, $data);
 }
